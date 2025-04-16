@@ -1,0 +1,195 @@
+{% extends 'base.html' %}
+
+{% block title %}Analysis Results - Bank Statement Analyzer{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3>Analysis Results</h3>
+    <a href="{% url 'index' %}" class="btn btn-outline-primary">
+        Back to Presets
+    </a>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header bg-light">
+        <h5 class="mb-0">Add More Bank Statements</h5>
+    </div>
+    <div class="card-body">
+        <form method="post" action="{% url 'index' %}" enctype="multipart/form-data" class="mb-4">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label for="id_pdf_files" class="form-label">Select PDF Files</label>
+                <input type="file" class="form-control" name="pdf_files" multiple>
+                <div class="form-text">You can select multiple PDF files at once.</div>
+            </div>
+            <div class="mb-3">
+                <label for="id_password" class="form-label">PDF Password (if protected)</label>
+                <input type="password" class="form-control" name="password">
+                <div class="form-text"><small class="text-primary">Leave blank if PDFs are not password-protected</small></div>
+            </div>
+            
+            <button type="submit" class="btn btn-primary">Upload Files</button>
+        </form>
+        
+        {% if pdf_count > 0 %}
+        <div class="alert alert-info mt-3 mb-0">
+            <i class="bi bi-info-circle"></i> Currently analyzing {{ pdf_count }} bank statement{{ pdf_count|pluralize }}.
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% if results %}
+    {% for item in results %}
+    <div class="card mb-4">
+        <div class="card-header">
+            <div class="d-flex align-items-center">
+                <img src="{{ item.preset.image.url }}" alt="{{ item.preset.name }}" class="preset-icon me-3">
+                <h5 class="mb-0">{{ item.preset.name }}</h5>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card stat-card h-100">
+                        <div class="card-body">
+                            <h6 class="text-muted">Transactions</h6>
+                            <div class="stat-value">{{ item.result.transaction_count }}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card stat-card h-100">
+                        <div class="card-body">
+                            <h6 class="text-muted">Total Credits</h6>
+                            <div class="stat-value deposit">₹{{ item.result.total_deposit|floatformat:2 }}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card stat-card h-100">
+                        <div class="card-body">
+                            <h6 class="text-muted">Total Debits</h6>
+                            <div class="stat-value withdrawal">₹{{ item.result.total_withdrawal|floatformat:2 }}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card stat-card h-100">
+                        <div class="card-body">
+                            <h6 class="text-muted">Net Flow</h6>
+                            <div class="stat-value {% if item.result.net_flow >= 0 %}deposit{% else %}withdrawal{% endif %}">
+                                ₹{{ item.result.net_flow|floatformat:2 }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            {% if item.preset.preset_type == 'date_range' %}
+                <div class="alert alert-light">
+                    Analyzing transactions from <strong>{{ item.preset.start_date|date:"M d, Y" }}</strong> to <strong>{{ item.preset.end_date|date:"M d, Y" }}</strong>
+                </div>
+            {% elif item.preset.preset_type == 'keyword' %}
+                <div class="alert alert-light">
+                    Analyzing transactions containing: 
+                    {% for keyword in item.result.keywords %}
+                        <span class="badge bg-primary">{{ keyword }}</span>
+                    {% endfor %}
+                </div>
+                
+                {% if item.result.keyword_stats %}
+                <div class="table-responsive mb-4">
+                    <table class="table table-sm table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Keyword</th>
+                                <th>Transactions</th>
+                                <th>Total Credits</th>
+                                <th>Total Debits</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for stat in item.result.keyword_stats %}
+                            <tr>
+                                <td>{{ stat.keyword }}</td>
+                                <td>{{ stat.count }}</td>
+                                <td class="text-success">₹{{ stat.deposit|floatformat:2 }}</td>
+                                <td class="text-danger">₹{{ stat.withdrawal|floatformat:2 }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% endif %}
+            {% elif item.preset.preset_type == 'amount_filter' %}
+                <div class="alert alert-light">
+                    Analyzing transactions with amount {{ item.result.comparison_text }}
+                </div>
+            {% endif %}
+            
+            {% if item.result.chart %}
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0">Visualization</h6>
+                </div>
+                <div class="card-body text-center">
+                    <img src="data:image/png;base64,{{ item.result.chart }}" alt="Chart" class="img-fluid">
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Sample Transactions Table -->
+            {% if item.result.transactions %}
+            <div class="card">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">Sample Transactions</h6>
+                    <span class="badge bg-secondary">Showing {{ item.result.transactions|length }} of {{ item.result.transaction_count }}</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-sm transaction-table mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Description</th>
+                                    <th>Reference</th>
+                                    <th>Withdrawal</th>
+                                    <th>Deposit</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for txn in item.result.transactions %}
+                                <tr>
+                                    <td>{{ txn.Date|date:"M d, Y" }}</td>
+                                    <td>{{ txn.Narration }}</td>
+                                    <td>{{ txn.reference }}</td>
+                                    <td class="text-danger">
+                                        {% if txn.Withdrawal > 0 %}
+                                            ₹{{ txn.Withdrawal|floatformat:2 }}
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-success">
+                                        {% if txn.Deposit > 0 %}
+                                            ₹{{ txn.Deposit|floatformat:2 }}
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="alert alert-warning">No matching transactions found for this preset.</div>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+{% else %}
+    <div class="alert alert-warning">
+        No analysis results available. Please select presets to analyze your bank statements.
+    </div>
+{% endif %}
+{% endblock %}
