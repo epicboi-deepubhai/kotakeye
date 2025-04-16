@@ -60,7 +60,7 @@ python manage.py runserver
 ## Usage
 
 ### Google Colab Notebook
-For data exploration and testing, you can use my Colab notebook: [Kotakeye](https://colab.research.google.com/drive/1ZvAd2Ulziia-3ThsWW2vukeBD2fw15ns?authuser=1#scrollTo=KHBklVO89xaB)
+For data exploration and testing, you can use my Colab notebook: [Kotakeye]([https://colab.research.google.com/drive/1ZvAd2Ulziia-3ThsWW2vukeBD2fw15ns?authuser=1#scrollTo=KHBklVO89xaB](https://colab.research.google.com/drive/1ZvAd2Ulziia-3ThsWW2vukeBD2fw15ns?usp=sharing))
 
 ### Django Web Application
 
